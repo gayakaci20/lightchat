@@ -1,62 +1,74 @@
-# LightChat
+# 🍃 LightChat
 
-Une application de chat moderne utilisant l'API Google Gemini pour la génération de réponses.
+**LightChat** est une application de chat moderne et minimaliste ✨, propulsée par l’**API Google Gemini** 🤖 pour générer des réponses intelligentes en temps réel.
 
-## Fonctionnalités
+[https://lightchat-two.vercel.app](https://lightchat-two.vercel.app)
 
-- Interface de chat moderne et responsive
-- Intégration de l'API Google Gemini
-- Support du thème clair/sombre
-- Animations fluides
-- Design minimaliste et élégant
+---
 
-## Prérequis
+## 🚀 Fonctionnalités
 
-- Node.js 18+ et npm
-- Une clé API Google Gemini
+- 💬 Interface de chat moderne, fluide et responsive
+- 🔗 Intégration directe de l’**API Google Gemini**
+- 🎞️ Animations élégantes avec **Framer Motion**
+- 🧘‍♂️ Design **minimaliste et épuré**
 
-## Installation
+---
 
-1. Clonez le repository :
-```bash
-git clone https://github.com/votre-username/light-chat.git
-cd light-chat
-```
+## 🛠️ Prérequis
 
-2. Installez les dépendances :
-```bash
-npm install
-```
+- ✅ **Node.js 18+** et **npm**
+- 🔑 Une **clé API Google Gemini**
 
-3. Créez un fichier `.env.local` à la racine du projet et ajoutez votre clé API Gemini :
-```
-NEXT_PUBLIC_GEMINI_API_KEY=votre_clé_api_ici
-```
+---
 
-4. Lancez l'application en mode développement :
-```bash
-npm run dev
-```
+## ⚙️ Installation
 
-L'application sera accessible à l'adresse [http://localhost:3000](http://localhost:3000).
+1. 📁 Clonez le repository :
+   ```bash
+   git clone https://github.com/votre-username/light-chat.git
+   cd light-chat
+   ```
 
-## Utilisation
+2. 📦 Installez les dépendances :
+   ```bash
+   npm install
+   ```
 
-1. Ouvrez l'application dans votre navigateur
-2. Tapez votre message dans la zone de texte en bas
-3. Appuyez sur Entrée ou cliquez sur le bouton d'envoi
-4. Attendez la réponse de l'IA
+3. 🔐 Créez un fichier `.env.local` à la racine du projet avec votre clé API :
+   ```
+   NEXT_PUBLIC_GEMINI_API_KEY=votre_clé_api_ici
+   ```
 
-## Technologies utilisées
+4. ▶️ Lancez l’application :
+   ```bash
+   npm run dev
+   ```
 
-- Next.js 14
-- React
-- TypeScript
-- TailwindCSS
-- Google Gemini API
-- Framer Motion
-- Heroicons
+   🔗 L'application sera accessible sur : [http://localhost:3000](http://localhost:3000)
 
-## Licence
+---
 
-MIT
+## 🧑‍💻 Utilisation
+
+1. Ouvrez l’application dans votre navigateur 🌐  
+2. Tapez un message dans la zone de saisie 📝  
+3. Appuyez sur **Entrée** ou cliquez sur le bouton d’envoi 📩  
+4. Laissez l’IA vous répondre avec style 🤖💡
+
+---
+
+## 🧱 Technologies utilisées
+
+- ⚛️ **Next.js 14**
+- ⚙️ **React** + **TypeScript**
+- 🎨 **TailwindCSS**
+- 🔮 **Google Gemini API**
+- 🧲 **Framer Motion**
+- 🎯 **Heroicons**
+
+---
+
+## 🪪 Licence
+
+📝 Ce projet est sous licence **MIT**. Utilisation libre et open source 👐
