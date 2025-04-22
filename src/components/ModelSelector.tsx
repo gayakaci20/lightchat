@@ -3,7 +3,6 @@
 import { useStore, ModelType } from '@/lib/store'
 import { useCallback, memo } from 'react'
 import { cn } from '@/lib/utils'
-import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { Dropdown, DropdownButton, DropdownItem, DropdownMenu } from './dropdown'
 import Image from 'next/image'
 
@@ -48,8 +47,6 @@ export function ModelSelector() {
     { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Lite' },
     { id: 'gemma-3-1b-it', name: 'Gemma 3 1B' },
   ]
-
-  const selectedModelInfo = models.find(model => model.id === selectedModel)
 
   return (
     <Dropdown>
