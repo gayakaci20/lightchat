@@ -150,6 +150,33 @@ export function Chat() {
     }
   }, [addMessage, scrollToBottom])
 
+  // Fonction pour détecter les questions sur le créateur
+  const isCreatorQuestion = useCallback((message: string) => {
+    const creatorQuestions = [
+      'who created you',
+      'who made you',
+      'who developed you',
+      'who designed you',
+      'who programmed you',
+      'who built you',
+      'qui t\'as créé',
+      'qui t\'a créé',
+      'qui t\'as fait',
+      'qui t\'a fait',
+      'qui t\'as développé',
+      'qui t\'a développé',
+      'qui t\'as programmé',
+      'qui t\'a programmé',
+      'qui t\'as conçu',
+      'qui t\'a conçu',
+      'qui t\'as construit',
+      'qui t\'a construit'
+    ]
+    return creatorQuestions.some(question => 
+      message.toLowerCase().includes(question.toLowerCase())
+    )
+  }, [])
+
   // Optimiser la gestion du formulaire
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -189,6 +216,14 @@ export function Chat() {
       // Comportement normal pour un message texte
       addMessage(userMessage, 'user')
       scrollToBottom()
+
+      // Vérifier si c'est une question sur le créateur
+      if (isCreatorQuestion(userMessage)) {
+        addMessage('Gaya Kaci', 'ai')
+        setIsLoading(false)
+        scrollToBottom()
+        return
+      }
 
       try {
         const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
@@ -350,7 +385,7 @@ export function Chat() {
         scrollToBottom()
       }
     }
-  }, [input, uploadedFile, isLoading, addMessage, selectedModel, messages, analyzeFile, scrollToBottom])
+  }, [input, uploadedFile, isLoading, addMessage, selectedModel, messages, analyzeFile, scrollToBottom, isCreatorQuestion])
 
   // Optimiser la gestion des touches
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
