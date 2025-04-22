@@ -47,17 +47,14 @@ export function Dropdown({ children, className }: DropdownProps) {
   return (
     <div className={cn('relative', className)} ref={dropdownRef}>
       {React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
+        if (React.isValidElement<DropdownButtonProps | DropdownMenuProps>(child)) {
           if (child.type === DropdownButton) {
             return React.cloneElement(child, {
               onClick: () => setIsOpen(!isOpen),
-              isOpen,
-            } as any)
+            })
           }
           if (child.type === DropdownMenu && isOpen) {
-            return React.cloneElement(child, {
-              isOpen,
-            } as any)
+            return React.cloneElement(child)
           }
         }
         return null
@@ -66,7 +63,7 @@ export function Dropdown({ children, className }: DropdownProps) {
   )
 }
 
-export function DropdownButton({ children, className, outline, onClick, isOpen }: DropdownButtonProps & { isOpen?: boolean }) {
+export function DropdownButton({ children, className, outline, onClick }: DropdownButtonProps) {
   return (
     <button
       onClick={onClick}
@@ -81,7 +78,7 @@ export function DropdownButton({ children, className, outline, onClick, isOpen }
   )
 }
 
-export function DropdownMenu({ children, className, anchor = 'bottom start', isOpen }: DropdownMenuProps & { isOpen?: boolean }) {
+export function DropdownMenu({ children, className, anchor = 'bottom start' }: DropdownMenuProps) {
   const anchorClasses = {
     'top start': 'bottom-full left-0 mb-2',
     'top end': 'bottom-full right-0 mb-2',

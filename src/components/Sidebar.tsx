@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { PlusIcon, ChatBubbleLeftIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'

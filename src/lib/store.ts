@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
-import { ReactNode } from 'react'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export interface Message {
