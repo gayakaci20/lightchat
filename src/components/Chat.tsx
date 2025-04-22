@@ -1,17 +1,23 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, memo } from 'react'
+import { useState, useRef, useEffect, useCallback, memo, useMemo } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useStore } from '@/lib/store'
-import { cn } from '@/lib/utils'
 import { LoadingDots } from './LoadingDots'
 import { ModelSelector } from './ModelSelector'
 import Image from 'next/image'
 
+interface Message {
+  id: string
+  content: string
+  type: 'user' | 'ai'
+  timestamp: Date
+}
+
 // Créer un composant mémorisé pour les messages
-const MessagesList = memo(({ messages, isLoading }: { messages: any[], isLoading: boolean }) => (
+const MessagesList = memo(({ messages, isLoading }: { messages: Message[], isLoading: boolean }) => (
   <>
     {messages.length === 0 ? (
       <div className="flex items-center justify-center h-full text-gray-400">
@@ -55,7 +61,7 @@ export function Chat() {
   }, [conversations.length, addConversation])
 
   const currentChat = conversations.find((c) => c.id === currentConversation)
-  const messages = currentChat?.messages || []
+  const messages = useMemo(() => currentChat?.messages || [], [currentChat?.messages])
 
   // Optimiser la gestion de l'input
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -76,12 +82,73 @@ export function Chat() {
     scrollToBottom()
   }, [messages, isLoading, scrollToBottom])
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       setUploadedFile(file)
     }
-  }
+  }, [])
+
+  const analyzeFile = useCallback(async (file: File, userMessage: string = '') => {
+    setIsLoading(true)
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
+      
+      // Convertir le fichier en base64
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        const base64Data = e.target?.result as string
+        const base64Content = base64Data.split(',')[1] // Enlever le préfixe data:image/jpeg;base64,
+        
+        // Créer le modèle avec la capacité de traiter les images
+        const model = genAI.getGenerativeModel({ 
+          model: 'gemini-1.5-pro',
+          generationConfig: {
+            temperature: 0.1,
+            topK: 10,
+            topP: 0.5,
+            maxOutputTokens: 512,
+          }
+        })
+        
+        // Préparer le contenu en fonction du type de fichier
+        let prompt = ""
+        if (file.type.startsWith('image/')) {
+          prompt = userMessage 
+            ? `Analyse cette image et réponds à ma demande: ${userMessage}` 
+            : "Analyse cette image et décris ce que tu vois en détail."
+        } else {
+          prompt = userMessage 
+            ? `Analyse ce document et réponds à ma demande: ${userMessage}` 
+            : "Analyse ce document et résume son contenu."
+        }
+        
+        // Envoyer le fichier à l'IA
+        const result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              mimeType: file.type,
+              data: base64Content
+            }
+          }
+        ])
+        
+        const response = await result.response
+        const text = response.text()
+        
+        addMessage(text, 'ai')
+      }
+      
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error analyzing file:', error)
+      addMessage('Désolé, une erreur est survenue lors de l\'analyse du fichier.', 'ai')
+    } finally {
+      setIsLoading(false)
+      scrollToBottom()
+    }
+  }, [addMessage, scrollToBottom])
 
   // Optimiser la gestion du formulaire
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -114,7 +181,7 @@ export function Chat() {
       }
       
       // Analyser le fichier avec l'IA
-      analyzeFile(uploadedFile, userMessage)
+      await analyzeFile(uploadedFile, userMessage)
       
       // Réinitialiser l'état du fichier
       setUploadedFile(null)
@@ -283,7 +350,7 @@ export function Chat() {
         scrollToBottom()
       }
     }
-  }, [input, uploadedFile, isLoading, addMessage, selectedModel, messages])
+  }, [input, uploadedFile, isLoading, addMessage, selectedModel, messages, analyzeFile, scrollToBottom])
 
   // Optimiser la gestion des touches
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -292,67 +359,6 @@ export function Chat() {
       handleSubmit(e)
     }
   }, [handleSubmit])
-
-  const analyzeFile = async (file: File, userMessage: string = '') => {
-    setIsLoading(true)
-    try {
-      const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
-      
-      // Convertir le fichier en base64
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        const base64Data = e.target?.result as string
-        const base64Content = base64Data.split(',')[1] // Enlever le préfixe data:image/jpeg;base64,
-        
-        // Créer le modèle avec la capacité de traiter les images
-        const model = genAI.getGenerativeModel({ 
-          model: 'gemini-1.5-pro',
-          generationConfig: {
-            temperature: 0.1,
-            topK: 10,
-            topP: 0.5,
-            maxOutputTokens: 512,
-          }
-        })
-        
-        // Préparer le contenu en fonction du type de fichier
-        let prompt = ""
-        if (file.type.startsWith('image/')) {
-          prompt = userMessage 
-            ? `Analyse cette image et réponds à ma demande: ${userMessage}` 
-            : "Analyse cette image et décris ce que tu vois en détail."
-        } else {
-          prompt = userMessage 
-            ? `Analyse ce document et réponds à ma demande: ${userMessage}` 
-            : "Analyse ce document et résume son contenu."
-        }
-        
-        // Envoyer le fichier à l'IA
-        const result = await model.generateContent([
-          prompt,
-          {
-            inlineData: {
-              mimeType: file.type,
-              data: base64Content
-            }
-          }
-        ])
-        
-        const response = await result.response
-        const text = response.text()
-        
-        addMessage(text, 'ai')
-      }
-      
-      reader.readAsDataURL(file)
-    } catch (error) {
-      console.error('Error analyzing file:', error)
-      addMessage('Désolé, une erreur est survenue lors de l\'analyse du fichier.', 'ai')
-    } finally {
-      setIsLoading(false)
-      scrollToBottom()
-    }
-  }
 
   return (
     <div className="flex h-full flex-col bg-gray-900">
