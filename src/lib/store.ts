@@ -47,7 +47,7 @@ export const useStore = create<ChatStore>()(
       conversations: [],
       currentConversation: null,
       isMobileMenuOpen: false,
-      selectedModel: 'gemini-1.5-flash',
+      selectedModel: 'gemma-3-1b-it',
 
       generateConversationTitle: async (messages: Message[]) => {
         try {
