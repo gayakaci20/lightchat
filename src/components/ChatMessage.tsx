@@ -9,7 +9,6 @@ import { useState, ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { LoadingDots } from './LoadingDots'
-import Image from 'next/image'
 
 type MessageType = 'user' | 'ai'
 
@@ -117,7 +116,6 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
               components={{
                 img: ({ src, alt }) => {
                   if (!src) return null
-                  /* eslint-disable-next-line @next/next/no-img-element */
                   return (
                     <img 
                       src={src} 
