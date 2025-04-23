@@ -9,6 +9,7 @@ import { useState, ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { LoadingDots } from './LoadingDots'
+import Image from 'next/image'
 
 type MessageType = 'user' | 'ai'
 
@@ -116,9 +117,20 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
               components={{
                 img: ({ src, alt }) => {
                   if (!src) return null
+                  if (typeof src === 'string' && src.startsWith('http')) {
+                    return (
+                      <Image 
+                        src={src} 
+                        alt={alt || 'Image'} 
+                        width={500}
+                        height={300}
+                        className="max-w-full h-auto rounded-lg"
+                      />
+                    )
+                  }
                   return (
                     <img 
-                      src={src} 
+                      src={typeof src === 'string' ? src : URL.createObjectURL(src)} 
                       alt={alt || 'Image'} 
                       className="max-w-full h-auto rounded-lg"
                     />
