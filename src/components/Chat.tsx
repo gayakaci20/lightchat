@@ -6,7 +6,6 @@ import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useStore } from '@/lib/store'
 import { LoadingDots } from './LoadingDots'
-import { ModelSelector } from './ModelSelector'
 import Image from 'next/image'
 
 interface Message {
@@ -169,7 +168,7 @@ export function Chat() {
 
             // Filtrer les modèles en fonction du type de fichier
             const suitableModels = Object.entries(models)
-              .filter(([_, capabilities]) => {
+              .filter(([, capabilities]) => {
                 if (fileType.startsWith('image/')) {
                   return capabilities.supportsImages
                 } else if (fileType === 'application/pdf') {
@@ -188,30 +187,23 @@ export function Chat() {
             return suitableModels[0]
           }
 
-          // Vérifier si la demande est pour générer une image
-          const isGeneratingImage = userMessage.toLowerCase().includes('generate') && 
-            (userMessage.toLowerCase().includes('image') || 
-             userMessage.toLowerCase().includes('picture') || 
-             userMessage.toLowerCase().includes('photo'))
-
           // Sélectionner le meilleur modèle
-          const modelName = getBestModel(file.type, isGeneratingImage)
+          const modelName = getBestModel(file.type)
           
           const model = genAI.getGenerativeModel({ 
             model: modelName,
             generationConfig: {
-              temperature: 0.1,
-              topK: 10,
-              topP: 0.5,
-              maxOutputTokens: 512,
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.9,
+              maxOutputTokens: 2048,
+              candidateCount: 4
             }
           })
           
           // Préparer le contenu en fonction du type de fichier
           let prompt = ""
-          if (isGeneratingImage) {
-            prompt = userMessage
-          } else if (file.type.startsWith('image/')) {
+          if (file.type.startsWith('image/')) {
             prompt = userMessage 
               ? `Analyse cette image et réponds à ma demande: ${userMessage}` 
               : "Analyse cette image et décris ce que tu vois en détail."
@@ -222,29 +214,20 @@ export function Chat() {
           }
           
           // Envoyer le fichier à l'IA
-          const result = await model.generateContent(prompt)
+          const result = await model.generateContent([
+            prompt,
+            ...(modelName !== 'gemma-3-1b-it' && base64Content ? [{
+              inlineData: {
+                mimeType: file.type,
+                data: base64Content
+              }
+            }] : [])
+          ])
           
           const response = await result.response
           const text = response.text()
           
-          // Vérifier s'il y a des images dans la réponse
-          if (response.candidates && response.candidates[0].content.parts) {
-            const parts = response.candidates[0].content.parts
-            const imagePart = parts.find(part => part.inlineData)
-            const textPart = parts.find(part => part.text)
-
-            if (textPart && textPart.text) {
-              addMessage(textPart.text, 'ai')
-            }
-            
-            if (imagePart && imagePart.inlineData) {
-              const imageData = imagePart.inlineData.data
-              const imageUrl = `data:image/png;base64,${imageData}`
-              addMessage(`![Generated Image](${imageUrl})`, 'ai')
-            }
-          } else {
-            addMessage(text, 'ai')
-          }
+          addMessage(text, 'ai')
         } catch (error) {
           console.error('Error processing file:', error)
           addMessage('Désolé, une erreur est survenue lors de l\'analyse du fichier.', 'ai')
@@ -262,7 +245,7 @@ export function Chat() {
       setIsLoading(false)
       scrollToBottom()
     }
-  }, [addMessage, scrollToBottom, selectedModel])
+  }, [addMessage, scrollToBottom])
 
   // Fonction pour détecter les questions sur le créateur
   const isCreatorQuestion = useCallback((message: string) => {
