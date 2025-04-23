@@ -12,8 +12,26 @@ export const metadata: Metadata = {
   title: 'LightChat',
   description: 'A modern chat interface powered by Google Gemini AI',
   icons: {
-    icon: '/leaf.png',
-    apple: '/leaf.png',
+    icon: [
+      {
+        url: '/leaf.png',
+        sizes: '32x32',
+        type: 'image/png',
+      },
+      {
+        url: '/leaf.png',
+        sizes: '16x16',
+        type: 'image/png',
+      }
+    ],
+    apple: [
+      {
+        url: '/leaf.png',
+        sizes: '180x180',
+        type: 'image/png',
+      }
+    ],
+    shortcut: '/leaf.png',
   },
 }
 
