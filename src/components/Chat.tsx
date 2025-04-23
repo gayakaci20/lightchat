@@ -85,7 +85,12 @@ export function Chat() {
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setUploadedFile(file)
+      // Vérifier si le fichier est une image ou un PDF
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        setUploadedFile(file)
+      } else {
+        alert('Seuls les fichiers images (JPG, PNG, GIF, etc.) et PDF sont supportés.')
+      }
     }
   }, [])
 
@@ -96,59 +101,80 @@ export function Chat() {
       
       // Convertir le fichier en base64
       const reader = new FileReader()
-      reader.onload = async (e) => {
-        const base64Data = e.target?.result as string
-        const base64Content = base64Data.split(',')[1] // Enlever le préfixe data:image/jpeg;base64,
-        
-        // Créer le modèle avec la capacité de traiter les images
-        const model = genAI.getGenerativeModel({ 
-          model: 'gemini-1.5-pro',
-          generationConfig: {
-            temperature: 0.1,
-            topK: 10,
-            topP: 0.5,
-            maxOutputTokens: 512,
-          }
-        })
-        
-        // Préparer le contenu en fonction du type de fichier
-        let prompt = ""
-        if (file.type.startsWith('image/')) {
-          prompt = userMessage 
-            ? `Analyse cette image et réponds à ma demande: ${userMessage}` 
-            : "Analyse cette image et décris ce que tu vois en détail."
-        } else {
-          prompt = userMessage 
-            ? `Analyse ce document et réponds à ma demande: ${userMessage}` 
-            : "Analyse ce document et résume son contenu."
-        }
-        
-        // Envoyer le fichier à l'IA
-        const result = await model.generateContent([
-          prompt,
-          {
-            inlineData: {
-              mimeType: file.type,
-              data: base64Content
-            }
-          }
-        ])
-        
-        const response = await result.response
-        const text = response.text()
-        
-        addMessage(text, 'ai')
-      }
       
-      reader.readAsDataURL(file)
+      const readFilePromise = new Promise((resolve, reject) => {
+        reader.onload = resolve
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      reader.onload = async (e) => {
+        try {
+          const base64Data = e.target?.result as string
+          const base64Content = base64Data.split(',')[1]
+          
+          // Sélectionner le modèle approprié en fonction du type de fichier
+          let modelName = selectedModel
+          if (file.type.startsWith('image/')) {
+            // Pour les images, utiliser un modèle qui supporte la vision
+            modelName = 'gemini-1.5-pro'
+          }
+          
+          const model = genAI.getGenerativeModel({ 
+            model: modelName,
+            generationConfig: {
+              temperature: 0.1,
+              topK: 10,
+              topP: 0.5,
+              maxOutputTokens: 512,
+            }
+          })
+          
+          // Préparer le contenu en fonction du type de fichier
+          let prompt = ""
+          if (file.type.startsWith('image/')) {
+            prompt = userMessage 
+              ? `Analyse cette image et réponds à ma demande: ${userMessage}` 
+              : "Analyse cette image et décris ce que tu vois en détail."
+          } else {
+            prompt = userMessage 
+              ? `Analyse ce document et réponds à ma demande: ${userMessage}` 
+              : "Analyse ce document et résume son contenu."
+          }
+          
+          // Envoyer le fichier à l'IA
+          const result = await model.generateContent([
+            prompt,
+            {
+              inlineData: {
+                mimeType: file.type,
+                data: base64Content
+              }
+            }
+          ])
+          
+          const response = await result.response
+          const text = response.text()
+          
+          addMessage(text, 'ai')
+        } catch (error) {
+          console.error('Error processing file:', error)
+          addMessage('Désolé, une erreur est survenue lors de l\'analyse du fichier.', 'ai')
+        } finally {
+          setIsLoading(false)
+          scrollToBottom()
+        }
+      }
+
+      await readFilePromise
+      
     } catch (error) {
       console.error('Error analyzing file:', error)
       addMessage('Désolé, une erreur est survenue lors de l\'analyse du fichier.', 'ai')
-    } finally {
       setIsLoading(false)
       scrollToBottom()
     }
-  }, [addMessage, scrollToBottom])
+  }, [addMessage, scrollToBottom, selectedModel])
 
   // Fonction pour détecter les questions sur le créateur
   const isCreatorQuestion = useCallback((message: string) => {
@@ -184,38 +210,26 @@ export function Chat() {
 
     const userMessage = input.trim()
     setInput('')
-    setIsLoading(true)
     
     // Si un fichier est uploadé, l'envoyer avec le message
     if (uploadedFile) {
-      // Si c'est une image, on peut l'afficher directement
-      if (uploadedFile.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const imageData = e.target?.result as string
-          const messageContent = userMessage 
-            ? `${userMessage}\n\n![Image uploadée](${imageData})`
-            : `![Image uploadée](${imageData})`
-          addMessage(messageContent, 'user')
-        }
-        reader.readAsDataURL(uploadedFile)
-      } else {
-        // Pour les documents, on affiche le nom du fichier
-        const messageContent = userMessage
-          ? `${userMessage}\n\n📄 **${uploadedFile.name}**`
-          : `📄 **${uploadedFile.name}**`
-        addMessage(messageContent, 'user')
-      }
+      setIsLoading(true)
+      // Pour tous les types de fichiers, afficher le nom du fichier
+      const messageContent = userMessage
+        ? `${userMessage}\n\n📄 **${uploadedFile.name}**`
+        : `📄 **${uploadedFile.name}**`
+      addMessage(messageContent, 'user')
       
-      // Analyser le fichier avec l'IA
-      await analyzeFile(uploadedFile, userMessage)
-      
-      // Réinitialiser l'état du fichier
+      // Réinitialiser le fichier avant l'analyse
+      const fileToAnalyze = uploadedFile
       setUploadedFile(null)
+      
+      await analyzeFile(fileToAnalyze, userMessage)
     } else {
       // Comportement normal pour un message texte
       addMessage(userMessage, 'user')
       scrollToBottom()
+      setIsLoading(true)
 
       // Vérifier si c'est une question sur le créateur
       if (isCreatorQuestion(userMessage)) {
@@ -408,10 +422,14 @@ export function Chat() {
         <div className="flex flex-col w-full p-4 gap-4">
           {uploadedFile && (
             <div className="flex items-center gap-3 p-3 pr-8 bg-gray-800 rounded-xl w-fit relative">
-              <div className="bg-pink-500 p-2 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                </svg>
+              <div className="bg-gray-900 p-2 rounded-lg">
+                <Image
+                  src={uploadedFile.type.startsWith('image/') ? '/image.svg' : '/file.svg'}
+                  alt={uploadedFile.type.startsWith('image/') ? 'Image' : 'File'}
+                  width={20}
+                  height={20}
+                  className="w-5 h-5 brightness-0 invert"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-sm text-white font-medium truncate max-w-[200px]">
@@ -450,7 +468,7 @@ export function Chat() {
                 ref={fileInputRef}
                 onChange={handleFileUpload}
                 className="hidden"
-                accept="image/*,.pdf,.doc,.docx,.txt"
+                accept="image/*,.pdf"
               />
               <button
                 type="button"

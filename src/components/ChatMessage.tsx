@@ -18,17 +18,23 @@ interface ChatMessageProps {
   isLoading?: boolean
 }
 
+interface CopiedState {
+  [key: string]: boolean;
+}
+
 export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [copiedStates, setCopiedStates] = useState<CopiedState>({})
   const [isMessageCopied, setIsMessageCopied] = useState(false)
 
   // Function to handle code block copying
-  const handleCopy = async (text: string, index: number) => {
+  const handleCopy = async (text: string, blockId: string) => {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(text)
-        setCopiedIndex(index)
-        setTimeout(() => setCopiedIndex(null), 2000)
+        setCopiedStates(prev => ({ ...prev, [blockId]: true }))
+        setTimeout(() => {
+          setCopiedStates(prev => ({ ...prev, [blockId]: false }))
+        }, 2000)
       } else {
         // Fallback pour les environnements où l'API Clipboard n'est pas disponible
         const textarea = document.createElement('textarea')
@@ -39,8 +45,10 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
         textarea.select()
         try {
           document.execCommand('copy')
-          setCopiedIndex(index)
-          setTimeout(() => setCopiedIndex(null), 2000)
+          setCopiedStates(prev => ({ ...prev, [blockId]: true }))
+          setTimeout(() => {
+            setCopiedStates(prev => ({ ...prev, [blockId]: false }))
+          }, 2000)
         } catch (err) {
           console.error('Fallback copy failed:', err)
         }
@@ -98,12 +106,24 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
       )}>
         <div className={cn(
           'flex-1 prose prose-sm max-w-none break-words prose-invert',
-          type === 'user' && 'text-white'
+          type === 'user' ? 'prose-gray' : 'prose-gray'
         )}>
-          {typeof content === 'string' ? (
+          {isLoading ? (
+            <LoadingDots />
+          ) : (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
+                img: ({ src, alt }) => {
+                  if (!src) return null
+                  return (
+                    <img 
+                      src={src} 
+                      alt={alt || 'Image'} 
+                      className="max-w-full h-auto rounded-lg"
+                    />
+                  )
+                },
                 code({ className, children, node, ...props }) {
                   const match = /language-(\w+)/.exec(className || '')
                   const code = Array.isArray(children) ? children.join('') : String(children)
@@ -111,11 +131,12 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
 
                   if (!isInline && match) {
                     const language = match[1]
-                    const codeIndex = parseInt(props.key?.toString() || '0')
+                    const blockId = `${node?.position?.start.line}-${language}`
 
                     return (
                       <div className={cn(
-                        "relative my-4 rounded-lg overflow-hidden w-full max-w-[calc(100vw-2rem)] sm:max-w-full",
+                        "relative my-4 rounded-lg overflow-hidden",
+                        "w-full max-w-[calc(100vw-2rem)] sm:max-w-[800px]",
                         type === 'user' ? 'bg-gray-900 border-gray-700' : 'bg-gray-800 border border-gray-700'
                       )}>
                         <div className={cn(
@@ -127,7 +148,7 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
                             type === 'user' ? 'text-gray-300' : 'text-gray-300'
                           )}>{language}</span>
                           <button
-                            onClick={() => handleCopy(code, codeIndex)}
+                            onClick={() => handleCopy(code, blockId)}
                             className={cn(
                               "transition-colors flex-shrink-0 ml-2",
                               type === 'user' 
@@ -136,7 +157,7 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
                             )}
                             title="Copier le code"
                           >
-                            {copiedIndex === codeIndex ? (
+                            {copiedStates[blockId] ? (
                               <span className={cn(
                                 "text-xs sm:text-sm whitespace-nowrap",
                                 type === 'user' ? 'text-green-400' : 'text-green-400'
@@ -248,37 +269,23 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
                 ),
               }}
             >
-              {content}
+              {typeof content === 'string' ? content : ''}
             </ReactMarkdown>
-          ) : (
-            <div className="text-white">
-              {isLoading ? (
-                <div className="flex items-center">
-                  <LoadingDots />
-                </div>
-              ) : (
-                String(content)
-              )}
-            </div>
           )}
         </div>
-        {type === 'ai' && (
-          <div className="absolute -bottom-2 left-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleMessageCopy}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white bg-gray-800/80 rounded-lg backdrop-blur-sm transition-colors"
-              title="Copier le message"
-            >
-              {isMessageCopied ? (
-                <span className="text-green-400">Copié !</span>
-              ) : (
-                <>
-                  <ClipboardIcon className="w-4 h-4" />
-                  <span>Copier</span>
-                </>
-              )}
-            </button>
-          </div>
+        {type === 'ai' && !isLoading && (
+          <button
+            onClick={handleMessageCopy}
+            className={cn(
+              'absolute bottom-1 left p-1.5 rounded-md transition-colors',
+              isMessageCopied
+                ? 'bg-green-500/20 text-green-500'
+                : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-gray-300'
+            )}
+            title={isMessageCopied ? 'Copié !' : 'Copier le message'}
+          >
+            <ClipboardIcon className="h-4 w-4" />
+          </button>
         )}
       </div>
     </motion.div>

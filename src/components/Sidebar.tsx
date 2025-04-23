@@ -1,6 +1,6 @@
 'use client'
 
-import { PlusIcon, ChatBubbleLeftIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
@@ -89,7 +89,13 @@ export function Sidebar({
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <ChatBubbleLeftIcon className="h-5 w-5" />
+                    <Image
+                      src="/message-square.svg"
+                      alt="Message"
+                      width={20}
+                      height={20}
+                      className="w-5 h-5 brightness-0 invert"
+                    />
                     <span className="line-clamp-1">{chat.title}</span>
                   </div>
                   <button
