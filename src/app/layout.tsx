@@ -11,6 +11,11 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: 'LightChat',
   description: 'A modern chat interface powered by Google Gemini AI',
+  icons: [
+    { rel: 'icon', url: '/favicon.ico' },
+    { rel: 'icon', url: '/favicon.ico', type: 'image/x-icon' },
+    { rel: 'shortcut icon', url: '/favicon.ico' }
+  ]
 }
 
 export const viewport: Viewport = {
@@ -28,7 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark h-full overflow-hidden">
       <head>
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className={`${poppins.className} antialiased h-full overflow-hidden bg-gray-900`}>
         {children}
