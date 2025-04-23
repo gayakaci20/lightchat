@@ -10,7 +10,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: 'LightChat',
-  description: 'A modern chat interface powered by Google Gemini AI',
+  description: 'A fast and modern AI chat interface',
   icons: {
     icon: [
       { url: '/favicon.ico', type: 'image/x-icon' },
