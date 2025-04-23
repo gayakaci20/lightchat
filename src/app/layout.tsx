@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   title: 'LightChat',
   description: 'A modern chat interface powered by Google Gemini AI',
   icons: {
-    icon: '/leaf.png',
-    shortcut: '/leaf.png',
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
     apple: '/leaf.png',
     other: {
       rel: 'apple-touch-icon',
@@ -38,8 +38,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark h-full overflow-hidden">
       <head>
-        <link rel="icon" href="/leaf.png" />
-        <link rel="shortcut icon" href="/leaf.png" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/leaf.png" />
       </head>
       <body className={`${poppins.className} antialiased h-full overflow-hidden bg-gray-900`}>
