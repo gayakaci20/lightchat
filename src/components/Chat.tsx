@@ -113,12 +113,89 @@ export function Chat() {
           const base64Data = e.target?.result as string
           const base64Content = base64Data.split(',')[1]
           
-          // Sélectionner le modèle approprié en fonction du type de fichier
-          let modelName = selectedModel
-          if (file.type.startsWith('image/')) {
-            // Pour les images, utiliser un modèle qui supporte la vision
-            modelName = 'gemini-1.5-pro'
+          // Fonction pour sélectionner le meilleur modèle
+          const getBestModel = (fileType: string, isGeneratingImage: boolean = false) => {
+            // Liste des modèles disponibles avec leurs capacités
+            const models = {
+              'gemini-1.5-flash': {
+                supportsImages: true,
+                supportsPdf: true,
+                speed: 'fast',
+                context: 'medium'
+              },
+              'gemini-1.5-pro': {
+                supportsImages: true,
+                supportsPdf: true,
+                speed: 'medium',
+                context: 'large'
+              },
+              'gemini-2.5-flash-preview-04-17': {
+                supportsImages: true,
+                supportsPdf: true,
+                speed: 'fast',
+                context: 'large'
+              },
+              'gemini-2.0-flash': {
+                supportsImages: true,
+                supportsPdf: true,
+                speed: 'fast',
+                context: 'medium'
+              },
+              'gemini-2.0-flash-exp-image-generation': {
+                supportsImages: true,
+                supportsPdf: false,
+                speed: 'fast',
+                context: 'medium',
+                canGenerateImages: true
+              },
+              'gemini-2.0-flash-lite': {
+                supportsImages: true,
+                supportsPdf: true,
+                speed: 'very fast',
+                context: 'small'
+              },
+              'gemma-3-1b-it': {
+                supportsImages: false,
+                supportsPdf: false,
+                speed: 'very fast',
+                context: 'small'
+              }
+            }
+
+            // Si on génère une image, utiliser le modèle spécifique
+            if (isGeneratingImage) {
+              return 'gemini-2.0-flash-exp-image-generation'
+            }
+
+            // Filtrer les modèles en fonction du type de fichier
+            const suitableModels = Object.entries(models)
+              .filter(([_, capabilities]) => {
+                if (fileType.startsWith('image/')) {
+                  return capabilities.supportsImages
+                } else if (fileType === 'application/pdf') {
+                  return capabilities.supportsPdf
+                }
+                return true // Pour les autres types de fichiers, tous les modèles sont acceptables
+              })
+              .map(([modelName]) => modelName)
+
+            // Si aucun modèle n'est disponible, utiliser le modèle par défaut
+            if (suitableModels.length === 0) {
+              return 'gemini-1.5-pro'
+            }
+
+            // Retourner le premier modèle disponible
+            return suitableModels[0]
           }
+
+          // Vérifier si la demande est pour générer une image
+          const isGeneratingImage = userMessage.toLowerCase().includes('generate') && 
+            (userMessage.toLowerCase().includes('image') || 
+             userMessage.toLowerCase().includes('picture') || 
+             userMessage.toLowerCase().includes('photo'))
+
+          // Sélectionner le meilleur modèle
+          const modelName = getBestModel(file.type, isGeneratingImage)
           
           const model = genAI.getGenerativeModel({ 
             model: modelName,
@@ -132,7 +209,9 @@ export function Chat() {
           
           // Préparer le contenu en fonction du type de fichier
           let prompt = ""
-          if (file.type.startsWith('image/')) {
+          if (isGeneratingImage) {
+            prompt = userMessage
+          } else if (file.type.startsWith('image/')) {
             prompt = userMessage 
               ? `Analyse cette image et réponds à ma demande: ${userMessage}` 
               : "Analyse cette image et décris ce que tu vois en détail."
@@ -143,20 +222,29 @@ export function Chat() {
           }
           
           // Envoyer le fichier à l'IA
-          const result = await model.generateContent([
-            prompt,
-            {
-              inlineData: {
-                mimeType: file.type,
-                data: base64Content
-              }
-            }
-          ])
+          const result = await model.generateContent(prompt)
           
           const response = await result.response
           const text = response.text()
           
-          addMessage(text, 'ai')
+          // Vérifier s'il y a des images dans la réponse
+          if (response.candidates && response.candidates[0].content.parts) {
+            const parts = response.candidates[0].content.parts
+            const imagePart = parts.find(part => part.inlineData)
+            const textPart = parts.find(part => part.text)
+
+            if (textPart && textPart.text) {
+              addMessage(textPart.text, 'ai')
+            }
+            
+            if (imagePart && imagePart.inlineData) {
+              const imageData = imagePart.inlineData.data
+              const imageUrl = `data:image/png;base64,${imageData}`
+              addMessage(`![Generated Image](${imageUrl})`, 'ai')
+            }
+          } else {
+            addMessage(text, 'ai')
+          }
         } catch (error) {
           console.error('Error processing file:', error)
           addMessage('Désolé, une erreur est survenue lors de l\'analyse du fichier.', 'ai')
@@ -210,6 +298,63 @@ export function Chat() {
 
     const userMessage = input.trim()
     setInput('')
+    
+    // Vérifier si c'est une demande de génération d'image
+    const isGeneratingImage = userMessage.toLowerCase().includes('generate') && 
+      (userMessage.toLowerCase().includes('image') || 
+       userMessage.toLowerCase().includes('picture') || 
+       userMessage.toLowerCase().includes('photo'))
+
+    // Si c'est une demande de génération d'image
+    if (isGeneratingImage) {
+      setIsLoading(true)
+      addMessage(userMessage, 'user')
+      
+      try {
+        const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
+        const model = genAI.getGenerativeModel({ 
+          model: 'gemini-2.0-flash-exp-image-generation',
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.9,
+            maxOutputTokens: 2048,
+            candidateCount: 4
+          }
+        })
+
+        const result = await model.generateContent(userMessage)
+
+        const response = await result.response
+        const text = response.text()
+        
+        // Vérifier s'il y a des images dans la réponse
+        if (response.candidates && response.candidates[0].content.parts) {
+          const parts = response.candidates[0].content.parts
+          const imagePart = parts.find(part => part.inlineData)
+          const textPart = parts.find(part => part.text)
+
+          if (textPart && textPart.text) {
+            addMessage(textPart.text, 'ai')
+          }
+          
+          if (imagePart && imagePart.inlineData) {
+            const imageData = imagePart.inlineData.data
+            const imageUrl = `data:image/png;base64,${imageData}`
+            addMessage(`![Generated Image](${imageUrl})`, 'ai')
+          }
+        } else {
+          addMessage(text, 'ai')
+        }
+      } catch (error) {
+        console.error('Error generating image:', error)
+        addMessage('Désolé, une erreur est survenue lors de la génération de l\'image.', 'ai')
+      } finally {
+        setIsLoading(false)
+        scrollToBottom()
+      }
+      return
+    }
     
     // Si un fichier est uploadé, l'envoyer avec le message
     if (uploadedFile) {
@@ -473,7 +618,7 @@ export function Chat() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute right-3 top-1/2 transform -translate-y-3 text-gray-400 hover:text-white transition-colors"
+                className="absolute right-3 top-1/4 text-gray-400 hover:text-white transition-colors"
                 title="Joindre un fichier"
               >
                 <Image
@@ -486,11 +631,10 @@ export function Chat() {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <ModelSelector />
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && !uploadedFile)}
-                className="p-3 rounded-2xl bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                className="p-3 rounded-2xl bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 self-center"
               >
                 <PaperAirplaneIcon className="h-5 w-5" />
               </button>

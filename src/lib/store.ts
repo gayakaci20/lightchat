@@ -51,11 +51,8 @@ export const useStore = create<ChatStore>()(
 
       generateConversationTitle: async (messages: Message[]) => {
         try {
-          const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
-          const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
-          
           const conversationText = messages
-            .map(msg => `${msg.type === 'user' ? 'User' : 'AI'}: ${msg.content}`)
+            .map(msg => `${msg.type === 'user' ? 'Utilisateur' : 'Assistant'}: ${msg.content}`)
             .join('\n')
           
           const prompt = `Analyse cette conversation et génère un titre court et pertinent (maximum 30 caractères) qui résume le sujet principal. Le titre doit être en français et ne doit pas contenir de ponctuation finale.
@@ -65,6 +62,9 @@ ${conversationText}
 
 Titre:`
 
+          const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
+          const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+          
           const result = await model.generateContent(prompt)
           const response = await result.response
           const title = response.text().trim()

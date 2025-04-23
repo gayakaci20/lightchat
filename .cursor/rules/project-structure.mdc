@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Structure Guide
+
+This Next.js project follows a modern app directory structure:
+
+- Main entry point is [src/app/layout.tsx](mdc:src/app/layout.tsx) which defines the root layout
+- Core components are in [src/components](mdc:src/components)
+- Utility functions are in [src/lib/utils.ts](mdc:src/lib/utils.ts)
+- Static assets are stored in the `public` directory
+- Configuration files:
+  - [next.config.js](mdc:next.config.js) for Next.js configuration
+  - [tailwind.config.ts](mdc:tailwind.config.ts) for Tailwind CSS
+  - [.eslintrc.json](mdc:.eslintrc.json) for ESLint rules

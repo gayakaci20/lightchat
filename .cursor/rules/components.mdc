@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Components Guide
+
+Key components of the application:
+
+- [ChatMessage.tsx](mdc:src/components/ChatMessage.tsx): Main component for rendering chat messages
+  - Handles markdown rendering
+  - Supports code syntax highlighting
+  - Manages copy functionality
+  - Handles image display
+
+- [LoadingDots.tsx](mdc:src/components/LoadingDots.tsx): Loading indicator component
+  - Used during message processing and file uploads
+
+- [Sidebar.tsx](mdc:src/components/Sidebar.tsx): Navigation sidebar component
+  - Manages conversation list
+  - Handles navigation between chats
+
+- [dropdown.tsx](mdc:src/components/dropdown.tsx): Reusable dropdown component
+  - Supports various anchor positions
+  - Handles click outside behavior
