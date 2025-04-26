@@ -122,12 +122,6 @@ export function Chat() {
                 speed: 'fast',
                 context: 'medium'
               },
-              'gemini-1.5-pro': {
-                supportsImages: true,
-                supportsPdf: true,
-                speed: 'medium',
-                context: 'large'
-              },
               'gemini-2.5-flash-preview-04-17': {
                 supportsImages: true,
                 supportsPdf: true,
@@ -180,7 +174,7 @@ export function Chat() {
 
             // Si aucun modèle n'est disponible, utiliser le modèle par défaut
             if (suitableModels.length === 0) {
-              return 'gemini-1.5-pro'
+              return 'gemini-2.5-flash-preview-04-17'
             }
 
             // Retourner le premier modèle disponible
@@ -193,11 +187,11 @@ export function Chat() {
           const model = genAI.getGenerativeModel({ 
             model: modelName,
             generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.9,
-              maxOutputTokens: 2048,
-              candidateCount: 4
+              temperature: 0.6,    // un peu plus bas pour des réponses plus précises
+              topK: 20,            // réduire légèrement pour choisir plus vite
+              topP: 0.8,           // moins de diversité, donc plus rapide
+              maxOutputTokens: 512, // réponse courte et rapide
+              candidateCount: 1
             }
           })
           
@@ -216,7 +210,7 @@ export function Chat() {
           // Envoyer le fichier à l'IA
           const result = await model.generateContent([
             prompt,
-            ...(modelName !== 'gemma-3-1b-it' && base64Content ? [{
+            ...(modelName !== 'gemini-2.5-flash-preview-04-17' && base64Content ? [{
               inlineData: {
                 mimeType: file.type,
                 data: base64Content
@@ -267,7 +261,13 @@ export function Chat() {
       'qui t\'as conçu',
       'qui t\'a conçu',
       'qui t\'as construit',
-      'qui t\'a construit'
+      'qui t\'a construit',
+      'your creator',
+      'your developer',
+      'your maker',
+      'your designer',
+      'your programmer',
+      'your builder'
     ]
     return creatorQuestions.some(question => 
       message.toLowerCase().includes(question.toLowerCase())
@@ -384,7 +384,7 @@ export function Chat() {
           })
           
           // Générer l'image avec les modalités de réponse appropriées
-          const prompt = "Génère une image réaliste d'un chat. Voici la description: " + userMessage
+          const prompt = "Génère" + userMessage
           
           // Utiliser l'API de génération d'images
           const result = await model.generateContent(prompt)
@@ -550,14 +550,22 @@ export function Chat() {
         <div className="flex flex-col w-full p-4 gap-4">
           {uploadedFile && (
             <div className="flex items-center gap-3 p-3 pr-8 bg-gray-800 rounded-xl w-fit relative">
-              <div className="bg-gray-900 p-2 rounded-lg">
-                <Image
-                  src={uploadedFile.type.startsWith('image/') ? '/image.svg' : '/file.svg'}
-                  alt={uploadedFile.type.startsWith('image/') ? 'Image' : 'File'}
-                  width={20}
-                  height={20}
-                  className="w-5 h-5 brightness-0 invert"
-                />
+              <div className="bg-gray-900 p-2 rounded-lg flex items-center justify-center">
+                {uploadedFile.type.startsWith('image/') ? (
+                  <img
+                    src={URL.createObjectURL(uploadedFile)}
+                    alt={uploadedFile.name}
+                    className="w-12 h-12 object-cover rounded-md border border-gray-700"
+                  />
+                ) : (
+                  <Image
+                    src="/file.svg"
+                    alt="File"
+                    width={20}
+                    height={20}
+                    className="w-5 h-5 brightness-0 invert"
+                  />
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="text-sm text-white font-medium truncate max-w-[200px]">

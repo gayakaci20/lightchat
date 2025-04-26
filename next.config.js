@@ -12,6 +12,7 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     formats: ['image/avif', 'image/webp'],
     domains: ['*'],
+    minimumCacheTTL: 60,
   },
   async headers() {
     return [
