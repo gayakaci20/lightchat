@@ -39,6 +39,8 @@ interface ChatStore {
   setMobileMenuOpen: (isOpen: boolean) => void
   setSelectedModel: (model: ModelType) => void
   generateConversationTitle: (messages: Message[]) => Promise<string>
+  generateImage: (prompt: string) => Promise<{ text: string; imageUrl?: string }>
+  editConversation: (id: string, title: string) => void
 }
 
 export const useStore = create<ChatStore>()(
@@ -63,15 +65,40 @@ ${conversationText}
 Titre:`
 
           const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
-          const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
           
-          const result = await model.generateContent(prompt)
-          const response = await result.response
-          const title = response.text().trim()
+          // Liste des modèles à essayer en ordre de préférence
+          const models = [
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro'
+          ]
+
+          let lastError = null
           
-          return title || 'Nouvelle conversation'
+          // Essayer chaque modèle jusqu'à ce qu'un fonctionne
+          for (const modelName of models) {
+            try {
+              const model = genAI.getGenerativeModel({ model: modelName })
+              const result = await model.generateContent(prompt)
+              const response = await result.response
+              const title = response.text().trim()
+              
+              if (title) {
+                return title
+              }
+            } catch (error) {
+              console.warn(`Erreur avec le modèle ${modelName}:`, error)
+              lastError = error
+              // Continuer avec le modèle suivant
+              continue
+            }
+          }
+          
+          // Si tous les modèles échouent, retourner un titre par défaut
+          console.error('Tous les modèles ont échoué:', lastError)
+          return 'Nouvelle conversation'
         } catch (error) {
-          console.error('Error generating title:', error)
+          console.error('Erreur lors de la génération du titre:', error)
           return 'Nouvelle conversation'
         }
       },
@@ -166,6 +193,54 @@ Titre:`
 
       setSelectedModel: (model: ModelType) => {
         set({ selectedModel: model })
+      },
+
+      generateImage: async (prompt: string) => {
+        try {
+          const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
+          const model = genAI.getGenerativeModel({ 
+            model: 'gemini-1.5-pro',
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.9,
+              maxOutputTokens: 2048,
+              candidateCount: 4
+            }
+          })
+
+          const result = await model.generateContent(prompt)
+          const response = await result.response
+          
+          if (response.candidates && response.candidates[0].content.parts) {
+            const parts = response.candidates[0].content.parts
+            const imagePart = parts.find(part => part.inlineData)
+            const textPart = parts.find(part => part.text)
+
+            let text = textPart?.text || "Here's the generated image:"
+            let imageUrl = undefined
+
+            if (imagePart?.inlineData) {
+              const imageData = imagePart.inlineData.data
+              imageUrl = `data:image/png;base64,${imageData}`
+            }
+
+            return { text, imageUrl }
+          }
+
+          return { text: "Sorry, I couldn't generate an image. Please try again with a different prompt." }
+        } catch (error) {
+          console.error('Error generating image:', error)
+          return { text: "Sorry, there was an error generating the image. Please try again." }
+        }
+      },
+
+      editConversation: (id: string, title: string) => {
+        set((state) => ({
+          conversations: state.conversations.map((conv) =>
+            conv.id === id ? { ...conv, title } : conv
+          ),
+        }))
       },
     }),
     {

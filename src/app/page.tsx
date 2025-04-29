@@ -14,6 +14,7 @@ export default function Home() {
     selectConversation,
     isMobileMenuOpen,
     setMobileMenuOpen,
+    editConversation,
   } = useStore()
 
   return (
@@ -33,6 +34,7 @@ export default function Home() {
         onNewChat={addConversation}
         onSelectChat={selectConversation}
         onDeleteChat={deleteConversation}
+        onEditChat={editConversation}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
       />

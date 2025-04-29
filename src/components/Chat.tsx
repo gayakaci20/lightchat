@@ -50,7 +50,7 @@ export function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const { conversations, currentConversation, addMessage, addConversation, selectedModel } = useStore()
+  const { conversations, currentConversation, addMessage, addConversation, selectedModel, generateImage } = useStore()
 
   // Créer une nouvelle conversation si aucune n'existe
   useEffect(() => {
@@ -122,6 +122,12 @@ export function Chat() {
                 speed: 'fast',
                 context: 'medium'
               },
+              'gemini-1.5-pro': {
+                supportsImages: true,
+                supportsPdf: true,
+                speed: 'medium',
+                context: 'large'
+              },
               'gemini-2.5-flash-preview-04-17': {
                 supportsImages: true,
                 supportsPdf: true,
@@ -187,11 +193,11 @@ export function Chat() {
           const model = genAI.getGenerativeModel({ 
             model: modelName,
             generationConfig: {
-              temperature: 0.6,    // un peu plus bas pour des réponses plus précises
-              topK: 20,            // réduire légèrement pour choisir plus vite
-              topP: 0.8,           // moins de diversité, donc plus rapide
-              maxOutputTokens: 512, // réponse courte et rapide
-              candidateCount: 1
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.9,
+              maxOutputTokens: 2048,
+              candidateCount: 4
             }
           })
           
@@ -294,38 +300,10 @@ export function Chat() {
       addMessage(userMessage, 'user')
       
       try {
-        const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
-        const model = genAI.getGenerativeModel({ 
-          model: 'gemini-2.0-flash-exp-image-generation',
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.9,
-            maxOutputTokens: 2048,
-            candidateCount: 4
-          }
-        })
-
-        const result = await model.generateContent(userMessage)
-
-        const response = await result.response
-        const text = response.text()
+        const { text, imageUrl } = await generateImage(userMessage)
         
-        // Vérifier s'il y a des images dans la réponse
-        if (response.candidates && response.candidates[0].content.parts) {
-          const parts = response.candidates[0].content.parts
-          const imagePart = parts.find(part => part.inlineData)
-          const textPart = parts.find(part => part.text)
-
-          if (textPart && textPart.text) {
-            addMessage(textPart.text, 'ai')
-          }
-          
-          if (imagePart && imagePart.inlineData) {
-            const imageData = imagePart.inlineData.data
-            const imageUrl = `data:image/png;base64,${imageData}`
-            addMessage(`![Generated Image](${imageUrl})`, 'ai')
-          }
+        if (imageUrl) {
+          addMessage(`${text}\n\n![Generated Image](${imageUrl})`, 'ai')
         } else {
           addMessage(text, 'ai')
         }
@@ -527,7 +505,7 @@ export function Chat() {
         scrollToBottom()
       }
     }
-  }, [input, uploadedFile, isLoading, addMessage, selectedModel, messages, analyzeFile, scrollToBottom, isCreatorQuestion])
+  }, [input, uploadedFile, isLoading, addMessage, selectedModel, messages, analyzeFile, scrollToBottom, isCreatorQuestion, generateImage])
 
   // Optimiser la gestion des touches
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
