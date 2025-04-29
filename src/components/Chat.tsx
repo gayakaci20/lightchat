@@ -530,9 +530,11 @@ export function Chat() {
             <div className="flex items-center gap-3 p-3 pr-8 bg-gray-800 rounded-xl w-fit relative">
               <div className="bg-gray-900 p-2 rounded-lg flex items-center justify-center">
                 {uploadedFile.type.startsWith('image/') ? (
-                  <img
+                  <Image
                     src={URL.createObjectURL(uploadedFile)}
                     alt={uploadedFile.name}
+                    width={48}
+                    height={48}
                     className="w-12 h-12 object-cover rounded-md border border-gray-700"
                   />
                 ) : (

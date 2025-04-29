@@ -129,9 +129,11 @@ export function ChatMessage({ content, type, isLoading }: ChatMessageProps) {
                     )
                   }
                   return (
-                    <img 
+                    <Image 
                       src={typeof src === 'string' ? src : URL.createObjectURL(src)} 
                       alt={alt || 'Image'} 
+                      width={500}
+                      height={300}
                       className="max-w-full h-auto rounded-lg"
                     />
                   )

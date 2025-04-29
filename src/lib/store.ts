@@ -217,13 +217,10 @@ Titre:`
             const imagePart = parts.find(part => part.inlineData)
             const textPart = parts.find(part => part.text)
 
-            let text = textPart?.text || "Here's the generated image:"
-            let imageUrl = undefined
-
-            if (imagePart?.inlineData) {
-              const imageData = imagePart.inlineData.data
-              imageUrl = `data:image/png;base64,${imageData}`
-            }
+            const text = textPart?.text || "Here's the generated image:"
+            const imageUrl = imagePart?.inlineData 
+              ? `data:image/png;base64,${imagePart.inlineData.data}`
+              : undefined
 
             return { text, imageUrl }
           }
