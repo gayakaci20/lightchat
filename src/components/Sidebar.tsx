@@ -183,19 +183,19 @@ export function Sidebar({
           </nav>
 
           {/* Footer GitHub link */}
-          <div className="flex-shrink-0 p-4 border-t border-gray-800">
+          <div className="flex-shrink-0 border-t border-gray-800/20 backdrop-blur-md bg-transparent">
             <a
               href="https://github.com/gayakaci20"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors"
+              className="flex flex-col items-center py-4 px-4 text-sm text-gray-400 hover:text-white transition-colors"
             >
               <Image
                 src="/github.svg"
                 alt="GitHub"
                 width={5}
                 height={5}
-                className="w-5 h-5 brightness-0 invert"
+                className="w-5 h-5 brightness-0 invert mb-1"
               />
               <div className="flex flex-col items-center">
                 <span className="text-xs">Open Source Project by</span>
